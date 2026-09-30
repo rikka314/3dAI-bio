@@ -4,35 +4,41 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <meta name="description" content="3dAI bio — an interactive collection of biological 3D models.">
-  <title>3dAI bio</title>
+  <meta name="description" content="Bio3D — an interactive collection of biological 3D models.">
+  <title>Bio3D</title>
   <link rel="icon" href="./mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./style.css?v=20260929-explode-rail">
-  <script type="importmap">{"imports":{"three":"./vendor/three/three.module.min.js","./content.js":"./content.js?v=20260929-explode","./collection-tree.js":"./collection-tree.js?v=20260928-import-models"}}</script>
+  <link rel="stylesheet" href="./style.css?v=20260930-bottom-sliders">
+  <script type="importmap">{"imports":{"three":"./vendor/three/three.module.min.js","./content.js":"./content.js?v=20260930-anatomy-domains","./collection-tree.js":"./collection-tree.js?v=20260930-anatomy-domains"}}</script>
 </head>
 <body>
   <a class="skip-link" href="#main" data-i18n="skip">跳到内容</a>
   <div class="workspace">
     <header class="topbar">
-      <a href="#" class="brand" aria-label="3dAI bio"><img src="./mark.svg" alt="" width="30" height="30"><span>3dAI <span class="brand-light">bio</span></span></a>
+      <a href="#collection" class="brand" aria-label="Bio3D"><img src="./mark.svg" alt="" width="30" height="30"><span>Bio<span class="brand-light">3D</span></span></a>
       <nav id="navigation" class="primary-nav" aria-label="主导航">
+        <!-- 首页暂时下线，保留代码以便恢复。
         <a href="#" id="home-link" class="nav-link" data-i18n="home">首页</a>
-        <a href="#collection" id="collection-link" class="nav-link" data-i18n="collection">成果集</a>
+        -->
+        <a href="#collection" id="collection-link" class="nav-link" data-i18n="collection">人体解剖</a>
+        <a href="#plants" id="plant-collection-link" class="nav-link" data-i18n="plantCollection">植物解剖</a>
+        <!-- 关于页面暂时下线，保留代码以便恢复。
         <a href="#about" id="about-link" class="nav-link" data-i18n="about">关于</a>
+        -->
       </nav>
       <div class="preferences"><button id="language" class="text-button" aria-label="Switch to English">EN</button><span class="divider"></span><button id="theme" class="icon-button" aria-label="切换深色" data-icon="moon"></button></div>
     </header>
-    <button id="collection-edge" class="collection-edge" aria-controls="collection-sidebar" aria-expanded="false" aria-label="模型目录" hidden><span class="collection-edge-label" data-i18n="modelDirectory">模型目录</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>
+    <button id="collection-edge" class="collection-edge" aria-controls="collection-sidebar" aria-expanded="false" aria-label="目录" hidden><span class="collection-edge-label" data-i18n="modelDirectory">目录</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>
     <aside id="collection-sidebar" class="collection-sidebar" data-open="false" hidden inert>
       <button id="collection-toggle" class="collection-rail-toggle" type="button" aria-expanded="false" aria-controls="organ-nav">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
-        <span data-i18n="collection">成果集</span>
+        <span data-i18n="collection">人体解剖</span>
       </button>
       <div id="organ-nav" class="collection-panel" hidden></div>
     </aside>
     <main id="main" tabindex="-1">
+      <!-- 首页暂时下线，保留代码以便恢复。
       <section class="desktop" id="desktop" aria-labelledby="desktop-title" hidden>
-        <div class="desktop-heading"><svg class="desktop-logo" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect width="32" height="32" rx="9" fill="var(--page)"/><g stroke="var(--text)" stroke-width="1.2" stroke-linejoin="round"><path d="m16 6 9 5v10l-9 5-9-5V11l9-5Zm0 0v10m0 0 9-5m-9 5-9-5m9 5v10"/><path d="m11.5 8.5 9 5v10"/></g></svg><h1 id="desktop-title">3dAI <span>bio</span></h1></div>
+        <div class="desktop-heading"><svg class="desktop-logo" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect width="32" height="32" rx="9" fill="var(--page)"/><g stroke="var(--text)" stroke-width="1.2" stroke-linejoin="round"><path d="m16 6 9 5v10l-9 5-9-5V11l9-5Zm0 0v10m0 0 9-5m-9 5-9-5m9 5v10"/><path d="m11.5 8.5 9 5v10"/></g></svg><h1 id="desktop-title">Bio<span>3D</span></h1></div>
         <div class="desktop-window">
           <div class="desktop-stage">
             <div class="viewport" id="desktop-viewport" aria-busy="true"></div>
@@ -41,6 +47,7 @@
         </div>
         <div class="desktop-caption"><div><span class="desktop-counter" id="tour-counter">01 / 03</span><span id="tour-organ">心脏</span></div><div class="desktop-actions"><button id="tour-play" class="icon-button" data-label="pauseTour" data-icon="pause"></button><button id="tour-next" class="icon-button" data-label="nextOrgan" data-icon="next"></button></div><a id="tour-open" href="#heart"><span data-i18n="openModel">查看模型</span><span data-icon="arrow"></span></a></div>
       </section>
+      -->
       <section class="model-section" id="detail-section" aria-labelledby="organ-title" hidden>
         <header class="organ-introduction" id="organ-introduction">
           <p class="eyebrow" id="eyebrow"></p>
@@ -49,19 +56,19 @@
           <div class="observation"><h2 data-i18n="observationTitle"></h2><ul id="observation-points"></ul></div>
         </header>
         <div class="model-card" id="model-card">
-        <div class="model-toolbar"><span class="view-label"><span class="live-dot" aria-hidden="true"></span><span data-i18n="model">3D 模型</span></span><span class="model-hint" data-i18n="hint"></span><div class="viewer-actions"><button class="icon-button" id="reset" data-icon="reset" data-label="reset" disabled></button><button class="icon-button" id="expand" data-icon="expand" data-label="expand"></button></div></div>
+        <div class="model-toolbar"><span class="model-hint" data-i18n="hint"></span><div class="viewer-actions"><button class="icon-button" id="reset" data-icon="reset" data-label="reset" disabled></button><button class="icon-button" id="expand" data-icon="expand" data-label="expand"></button></div></div>
         <div class="viewer-stage">
         <div class="viewer-shell" id="viewer-shell">
           <div class="viewport" id="viewport" aria-busy="true"></div>
           <div class="load-overlay" id="load-overlay" hidden><span class="loader" id="loader" aria-hidden="true"></span><p id="status" role="status" aria-live="polite" aria-atomic="true">正在加载模型…</p><progress id="progress" max="100" aria-label="模型加载进度"></progress><button id="retry" class="plain-button" data-i18n="retry" hidden>重新加载</button></div>
           <div id="slice-panel" class="slice-rail" hidden>
             <select id="slice-axis" data-label="axis"><option value="x">X</option><option value="y">Y</option><option value="z">Z</option></select>
-            <input id="slice-depth" type="range" min="0" max="100" value="50" aria-orientation="vertical" data-label="depth">
+            <input id="slice-depth" type="range" min="0" max="100" value="50" aria-orientation="horizontal" data-label="depth">
             <output id="slice-value" for="slice-depth">50%</output>
             <button id="slice-flip" class="icon-button" aria-pressed="false" data-label="flip" data-icon="rotate"></button>
           </div>
           <div class="slice-rail explode-rail" id="explode-controls" role="group" data-label="explodeDegree" hidden>
-            <input id="explode-depth" type="range" min="0" max="100" value="0" step="1" aria-orientation="vertical" data-label="explodeDegree">
+            <input id="explode-depth" type="range" min="0" max="100" value="0" step="1" aria-orientation="horizontal" data-label="explodeDegree">
             <output id="explode-value" for="explode-depth">0%</output>
           </div>
           <div class="viewer-bottom"><div class="zoom-controls"><button id="zoom-out" class="icon-button" data-icon="minus" data-label="zoomOut" disabled></button><button id="zoom-in" class="icon-button" data-icon="plus" data-label="zoomIn" disabled></button></div></div>
@@ -69,11 +76,13 @@
         </div>
         <div class="under-viewer"><div class="view-presets" id="view-presets" role="group" aria-label="模型坐标视角"><button data-view="front" data-i18n="front" disabled>正面</button><button data-view="back" data-i18n="back" disabled>背面</button><button data-view="left" data-i18n="left" disabled>左侧</button><button data-view="right" data-i18n="right" disabled>右侧</button></div><div class="mode-controls"><a id="download-model" class="subtle-button" download><span data-icon="download"></span><span data-i18n="download">下载高清模型</span></a><button id="rotate" class="subtle-button" aria-pressed="false" disabled><span data-icon="rotate"></span><span data-i18n="rotate">自动旋转</span></button><button id="explode" class="subtle-button" aria-expanded="false" aria-controls="explode-controls" data-label="explode" disabled><span data-icon="explode"></span><span data-i18n="explode">组件拆分</span></button><button id="slice" class="subtle-button" aria-expanded="false" aria-controls="slice-panel" disabled><span data-icon="slice"></span><span data-i18n="slice">切片</span></button></div></div>
         </div>
-        <p class="anatomy-note" data-i18n="anatomyNote"></p>
+        <p class="anatomy-note" data-i18n="anatomyNote" hidden></p>
       </section>
+      <!-- 关于页面暂时下线，保留代码以便恢复。
       <section id="about-section" aria-label="关于" hidden></section>
+      -->
     </main>
   </div>
-  <script type="module" src="./app.js?v=20260929-explode-rail"></script>
+  <script type="module" src="./app.js?v=20260930-anatomy-domains"></script>
 </body>
 </html>

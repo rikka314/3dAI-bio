@@ -1,8 +1,9 @@
 import { organs, messages } from './content.js';
-import { createViewer } from './viewer.js?v=20260929-explode';
-import { createDesktopTour } from './desktop-tour.js?v=20260929-explode';
+import { createViewer } from './viewer.js?v=20260930-model-size';
+// 首页暂时下线，保留导入代码以便恢复。
+// import { createDesktopTour } from './desktop-tour.js?v=20260929-explode';
 import { preloadModels } from './model-loading.js';
-import { collectionRootLabel, groupOrgansBySystem, resolveCollectionRoute, revealOrganInTree } from './collection-tree.js';
+import { collectionIdForOrgan, collectionLabels, collectionRootLabels, groupOrgansBySystem, resolveCollectionRoute, revealOrganInTree } from './collection-tree.js';
 
 const $ = (id) => document.getElementById(id);
 const icons = {
@@ -29,15 +30,17 @@ let language = readPreference('language') === 'en' ? 'en' : 'zh';
 let theme = readPreference('theme');
 if (!['light', 'dark'].includes(theme)) theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 let selected = organs[0];
-let lastCollectionId = null;
+const lastCollectionIds = { human: null, plant: null };
+let currentCollection = 'human';
 let detail = false;
-let about = false;
+// 关于页面暂时下线，保留状态代码以便恢复。
+// let about = false;
 let collectionOpen = false;
 let desktopCollectionOpen = true;
 const narrowLayout = matchMedia('(max-width: 899px)');
 let collectionBeforeExpand = false;
 let scrollBeforeExpand = 0;
-const collapsedCollectionBranches = new Set(['root', ...groupOrgansBySystem(organs).map((system) => system.id)]);
+const collapsedCollectionBranches = new Set(['root', ...['human', 'plant'].flatMap((collectionId) => groupOrgansBySystem(organs, collectionId).map((system) => system.id))]);
 let viewer;
 let loadedId;
 let loadState = { phase: 'loading', progress: 0 };
@@ -53,11 +56,14 @@ let expandAnimations = [];
 let pageAnimation;
 let modelAnimation;
 let sliceAnimation;
-let tour;
-let tourOrgan = organs[0];
-let tourPaused = false;
-let tourState = { phase: 'loading', progress: 0 };
+// 首页暂时下线，保留轮播状态代码以便恢复。
+// let tour;
+// let tourOrgan = organs[0];
+// let tourPaused = false;
+// let tourState = { phase: 'loading', progress: 0 };
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+const PREVIEW_VIEW_SCALE = 1.4;
+const EXPANDED_VIEW_SCALE = 1.1;
 const t = (key) => messages[language][key] || key;
 
 document.querySelectorAll('[data-icon]').forEach((element) => { element.innerHTML = icon(element.dataset.icon); });
@@ -70,7 +76,7 @@ function renderNavigation() {
   const tree = document.createElement('ul');
   tree.className = 'collection-tree';
   tree.setAttribute('role', 'tree');
-  tree.setAttribute('aria-label', t('collection'));
+  tree.setAttribute('aria-label', collectionLabels[currentCollection][language]);
 
   const root = document.createElement('li');
   root.className = 'tree-node';
@@ -84,7 +90,7 @@ function renderNavigation() {
   rootToggle.setAttribute('aria-owns', 'collection-root-group');
   rootToggle.setAttribute('aria-controls', 'collection-root-group');
   rootToggle.innerHTML = '<span class="tree-marker" aria-hidden="true"></span><span class="tree-label"></span>';
-  rootToggle.querySelector('.tree-label').textContent = collectionRootLabel[language];
+  rootToggle.querySelector('.tree-label').textContent = collectionRootLabels[currentCollection][language];
   root.append(rootToggle);
 
   const systems = document.createElement('ul');
@@ -92,7 +98,7 @@ function renderNavigation() {
   systems.id = 'collection-root-group';
   systems.setAttribute('role', 'group');
   systems.hidden = collapsedCollectionBranches.has('root');
-  groupOrgansBySystem(organs).forEach((system) => {
+  groupOrgansBySystem(organs, currentCollection).forEach((system) => {
     const branch = document.createElement('li');
     branch.className = 'tree-node';
     branch.setAttribute('role', 'none');
@@ -138,9 +144,12 @@ function renderNavigation() {
     ) === focusKey);
     replacement?.focus({ preventScroll: true });
   }
-  if (!detail && !about) $('home-link').setAttribute('aria-current', 'page'); else $('home-link').removeAttribute('aria-current');
-  if (detail) $('collection-link').setAttribute('aria-current', 'page'); else $('collection-link').removeAttribute('aria-current');
-  if (about) $('about-link').setAttribute('aria-current', 'page'); else $('about-link').removeAttribute('aria-current');
+  // 首页暂时下线，保留导航状态代码以便恢复。
+  // if (!detail && !about) $('home-link').setAttribute('aria-current', 'page'); else $('home-link').removeAttribute('aria-current');
+  if (detail && currentCollection === 'human') $('collection-link').setAttribute('aria-current', 'page'); else $('collection-link').removeAttribute('aria-current');
+  if (detail && currentCollection === 'plant') $('plant-collection-link').setAttribute('aria-current', 'page'); else $('plant-collection-link').removeAttribute('aria-current');
+  // 关于页面暂时下线，保留导航状态代码以便恢复。
+  // if (about) $('about-link').setAttribute('aria-current', 'page'); else $('about-link').removeAttribute('aria-current');
 }
 
 function setControlsEnabled(enabled) {
@@ -187,14 +196,18 @@ function renderText() {
   $('download-model').href = selected.downloadUrl;
   $('download-model').download = `${selected.modelId}.glb`;
   document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';
-  document.title = detail ? `${selected.name[language]} — 3dAI bio` : about ? `${t('about')} — 3dAI bio` : '3dAI bio';
+  // 首页和关于页面暂时下线，保留原始标题逻辑以便恢复。
+  // document.title = detail ? `${selected.name[language]} — Bio3D` : about ? `${t('about')} — Bio3D` : 'Bio3D';
+  document.title = `${selected.name[language]} — Bio3D`;
   document.querySelectorAll('[data-i18n]').forEach((element) => { element.textContent = t(element.dataset.i18n); });
   document.querySelectorAll('[data-label]').forEach((element) => { element.setAttribute('aria-label', t(element.dataset.label)); element.title = t(element.dataset.label); });
   $('language').textContent = language === 'zh' ? 'EN' : '中文';
   $('language').setAttribute('aria-label', language === 'zh' ? 'Switch to English' : '切换中文');
-  $('about-section').setAttribute('aria-label', t('about'));
-  const system = groupOrgansBySystem(organs).find((group) => group.organs.some((organ) => organ.id === selected.id));
-  $('eyebrow').textContent = `${collectionRootLabel[language]} / ${system?.label[language] || t('organs')}`;
+  // 关于页面暂时下线，保留无障碍标签代码以便恢复。
+  // $('about-section').setAttribute('aria-label', t('about'));
+  const system = groupOrgansBySystem(organs, currentCollection).find((group) => group.organs.some((organ) => organ.id === selected.id));
+  $('eyebrow').textContent = `${collectionRootLabels[currentCollection][language]} / ${system?.label[language] || t('organs')}`;
+  $('collection-toggle').querySelector('[data-i18n="collection"]').textContent = collectionLabels[currentCollection][language];
   $('organ-secondary-name').textContent = language === 'zh' ? selected.name.en : '';
   $('organ-secondary-name').hidden = language !== 'zh';
   $('organ-description').textContent = selected.description[language];
@@ -208,7 +221,7 @@ function renderText() {
   $('view-presets').setAttribute('aria-label', t('viewLabel'));
   $('view-presets').title = t('sliceNote');
   $('progress').setAttribute('aria-label', t('progress'));
-  $('viewport').querySelector('canvas')?.setAttribute('aria-label', t('canvas'));
+  $('viewport').querySelector('canvas')?.setAttribute('aria-label', t(expanded ? 'canvas' : 'previewCanvas'));
   updateRotation(rotating);
   renderExplodeState();
   renderTheme();
@@ -216,9 +229,11 @@ function renderText() {
   setCollectionOpen(collectionOpen);
   renderLoadState();
   updateExpandLabel();
-  renderTour();
+  // 首页暂时下线，保留轮播渲染调用以便恢复。
+  // renderTour();
 }
 
+/* 首页暂时下线，保留轮播代码以便恢复。
 function renderTour() {
   $('tour-organ').textContent = tourOrgan.name[language];
   $('tour-counter').textContent = `${String(organs.indexOf(tourOrgan) + 1).padStart(2, '0')} / ${String(organs.length).padStart(2, '0')}`;
@@ -246,18 +261,19 @@ function startTour() {
       onOrgan(organ) { tourOrgan = organ; $('desktop').dataset.organ = organ.id; renderTour(); },
       onStatus(state) { tourState = state; renderTour(); },
       onPlayback(paused) { tourPaused = paused; renderTour(); },
-      onError(error) { console.error('3dAI bio desktop:', error); },
+      onError(error) { console.error('Bio3D desktop:', error); },
       onActivate(organ) { location.hash = organ.id; },
       onSide(side) { $('desktop').dataset.side = side; },
     });
     tour.setTheme(theme);
     tour.start();
   } catch (error) {
-    console.error('3dAI bio desktop:', error);
+    console.error('Bio3D desktop:', error);
     tourState = { phase: 'error', progress: null };
     renderTour();
   }
 }
+*/
 
 function renderTheme() {
   document.documentElement.dataset.theme = theme;
@@ -265,24 +281,25 @@ function renderTheme() {
   const label = t(theme === 'light' ? 'dark' : 'light');
   $('theme').setAttribute('aria-label', label); $('theme').title = label;
   viewer?.setTheme(theme);
-  tour?.setTheme(theme);
+  // 首页暂时下线，保留轮播主题代码以便恢复。
+  // tour?.setTheme(theme);
 }
 
 function ensureViewer() {
   if (viewer) return true;
   try {
     viewer = createViewer($('viewport'), {
-      viewScale: 0.75,
+      viewScale: EXPANDED_VIEW_SCALE,
       onStatus(state) { loadState = state; renderLoadState(); },
       onReady() {
-        $('viewport').querySelector('canvas')?.setAttribute('aria-label', t('canvas'));
+        $('viewport').querySelector('canvas')?.setAttribute('aria-label', t(expanded ? 'canvas' : 'previewCanvas'));
         const info = viewer.getExplodeInfo();
         explodeAvailable = info.available;
         explodePercent = info.percent;
         renderExplodeState();
         revealModel();
       },
-      onError(error) { console.error('3dAI bio model viewer:', error); },
+      onError(error) { console.error('Bio3D model viewer:', error); },
       onRotateChange: updateRotation,
       onReset() {
         explodePercent = 0;
@@ -291,10 +308,12 @@ function ensureViewer() {
       },
     });
     viewer.setTheme(theme);
+    viewer.setFullControls(expanded);
+    viewer.setViewScale(expanded ? EXPANDED_VIEW_SCALE : PREVIEW_VIEW_SCALE);
     graphicsError = false;
     return true;
   } catch (error) {
-    console.error('3dAI bio graphics initialization:', error);
+    console.error('Bio3D graphics initialization:', error);
     graphicsError = true;
     loadState = { phase: 'error', progress: null };
     renderLoadState();
@@ -310,8 +329,8 @@ function applySlice() {
 }
 
 // Match the compact horizontal rail used by the model-height container query.
-new ResizeObserver(([entry]) => {
-  $('slice-depth').setAttribute('aria-orientation', entry.contentRect.height <= 300 ? 'horizontal' : 'vertical');
+new ResizeObserver(() => {
+  $('slice-depth').setAttribute('aria-orientation', 'horizontal');
 }).observe($('viewer-shell'));
 
 function finishSliceAnimation() {
@@ -390,31 +409,44 @@ function route() {
   finishPageTransition();
   finishModelReveal();
   const id = location.hash.slice(1);
-  const match = resolveCollectionRoute(id, organs, lastCollectionId);
+  const match = resolveCollectionRoute(id, organs, lastCollectionIds);
+  // 首页和关于页面暂时下线；根地址、关于页及未知路由临时进入成果集。
+  if (!match) {
+    history.replaceState(history.state, '', '#collection');
+    route();
+    return;
+  }
   if (match) {
     // Keep the fresh collection folded; explicit links and return visits reveal the selected path.
-    if (id !== 'collection' || lastCollectionId !== null) revealOrganInTree(organs, match.id, collapsedCollectionBranches);
+    const nextCollection = collectionIdForOrgan(match.id);
+    if (!['collection', 'plants'].includes(id) || lastCollectionIds[nextCollection] !== null) revealOrganInTree(organs, match.id, collapsedCollectionBranches);
     selected = match;
-    lastCollectionId = match.id;
+    currentCollection = nextCollection;
+    lastCollectionIds[currentCollection] = match.id;
     // Give each history entry its actual organ so Back/Forward cannot resolve a stale alias.
-    if (id === 'collection') history.replaceState(history.state, '', `#${match.id}`);
+    if (['collection', 'plants'].includes(id)) history.replaceState(history.state, '', `#${match.id}`);
   }
   detail = Boolean(match);
-  about = id === 'about';
+  // 关于页面暂时下线，保留路由状态代码以便恢复。
+  // about = id === 'about';
   if (expanded) setExpanded(false);
   finishExpansion();
   $('collection-sidebar').hidden = !detail;
   setCollectionOpen(!narrowLayout.matches && desktopCollectionOpen);
-  $('desktop').hidden = detail || about;
+  // 首页暂时下线，保留页面显隐代码以便恢复。
+  // $('desktop').hidden = detail || about;
   $('detail-section').hidden = !detail;
-  $('about-section').hidden = !about;
-  $('main').classList.toggle('desktop-main', !detail && !about);
+  // 关于页面暂时下线，保留页面显隐代码以便恢复。
+  // $('about-section').hidden = !about;
+  // $('main').classList.toggle('desktop-main', !detail && !about);
   $('main').classList.toggle('detail-main', detail);
-  $('main').classList.toggle('about-main', about);
-  if (detail || about) {
-    tour?.dispose();
-    tour = null;
-  }
+  // 关于页面暂时下线，保留页面样式代码以便恢复。
+  // $('main').classList.toggle('about-main', about);
+  // 首页暂时下线，保留轮播清理代码以便恢复。
+  // if (detail || about) {
+  //   tour?.dispose();
+  //   tour = null;
+  // }
   if (!detail) {
     viewer?.dispose();
     viewer = null;
@@ -425,12 +457,16 @@ function route() {
     if (loadedId !== selected.id) loadSelected();
     else if (loadState.phase === 'ready') revealModel();
     else if (loadState.phase === 'loading') $('viewport').style.opacity = '0';
-  } else if (!about) startTour();
+  // 首页暂时下线，保留轮播启动代码以便恢复。
+  // } else if (!about) startTour();
+  }
   window.scrollTo({ top: 0, behavior: 'instant' });
   if (!reducedMotion.matches) {
     // Move only the page content inside a stationary clip, so the animation
     // cannot temporarily extend the document and toggle its scrollbar.
-    const page = $(detail ? 'detail-section' : about ? 'about-section' : 'desktop');
+    // 首页和关于页面暂时下线，当前只对成果集详情执行转场。
+    // const page = $(detail ? 'detail-section' : about ? 'about-section' : 'desktop');
+    const page = $('detail-section');
     $('main').classList.add('page-transitioning');
     pageAnimation = page.animate([
       { opacity: 0, transform: 'translateY(24px)' },
@@ -473,6 +509,8 @@ function updateExpandLabel() {
   $('expand').setAttribute('aria-label', label); $('expand').title = label;
   $('expand').setAttribute('aria-expanded', String(expanded));
   $('expand').innerHTML = icon(expanded ? 'collapse' : 'expand');
+  document.querySelector('.model-hint').textContent = t(expanded ? 'hint' : 'previewHint');
+  $('viewport').querySelector('canvas')?.setAttribute('aria-label', t(expanded ? 'canvas' : 'previewCanvas'));
 }
 
 function finishExpansion() {
@@ -490,8 +528,20 @@ function setExpanded(value) {
   if (value) {
     collectionBeforeExpand = collectionOpen;
     scrollBeforeExpand = window.scrollY;
+  } else {
+    // Return the reading view to a plain draggable preview.
+    viewer?.setRotate(false);
+    finishSliceAnimation();
+    slicing = false;
+    flipped = false;
+    $('slice-panel').hidden = true;
+    $('slice').setAttribute('aria-expanded', 'false');
+    applySlice();
+    closeExplode();
   }
   expanded = value;
+  viewer?.setFullControls(value);
+  viewer?.setViewScale(value ? EXPANDED_VIEW_SCALE : PREVIEW_VIEW_SCALE);
   $('detail-section').classList.toggle('expanded', value);
   for (const element of document.querySelectorAll('.skip-link,.topbar,.collection-edge,.organ-introduction,.anatomy-note')) element.inert = value;
   $('organ-introduction').setAttribute('aria-hidden', String(value));
@@ -520,7 +570,8 @@ function setCollectionOpen(open) {
   $('collection-sidebar').setAttribute('aria-hidden', String(!open));
   $('collection-edge').setAttribute('aria-expanded', String(open));
   $('collection-toggle').setAttribute('aria-expanded', String(open));
-  const label = t(open ? 'closeCollection' : 'openCollection');
+  const collectionName = collectionLabels[currentCollection][language];
+  const label = language === 'zh' ? `${open ? '收起' : '展开'}${collectionName}` : `${open ? 'Close' : 'Open'} ${collectionName.toLowerCase()}`;
   $('collection-edge').setAttribute('aria-label', t('modelDirectory'));
   $('collection-edge').title = t('modelDirectory');
   $('collection-toggle').setAttribute('aria-label', label);
@@ -583,9 +634,10 @@ $('organ-nav').addEventListener('click', (event) => {
   }
 });
 $('language').addEventListener('click', () => { language = language === 'zh' ? 'en' : 'zh'; savePreference('language', language); renderText(); });
-$('tour-play').addEventListener('click', () => tour?.setPaused(!tourPaused));
-$('tour-next').addEventListener('click', () => tour?.next());
-$('tour-retry').addEventListener('click', () => { tour?.dispose(); tour = null; startTour(); });
+// 首页暂时下线，保留轮播事件代码以便恢复。
+// $('tour-play').addEventListener('click', () => tour?.setPaused(!tourPaused));
+// $('tour-next').addEventListener('click', () => tour?.next());
+// $('tour-retry').addEventListener('click', () => { tour?.dispose(); tour = null; startTour(); });
 $('theme').addEventListener('click', () => { theme = theme === 'light' ? 'dark' : 'light'; savePreference('theme', theme); renderTheme(); });
 $('reset').addEventListener('click', () => viewer?.reset());
 $('rotate').addEventListener('click', () => viewer?.setRotate(!rotating));
@@ -629,7 +681,8 @@ reducedMotion.addEventListener('change', () => {
   finishPageTransition();
   finishSliceAnimation();
   if (loadState.phase === 'ready') finishModelReveal();
-  renderTour();
+  // 首页暂时下线，保留轮播渲染代码以便恢复。
+  // renderTour();
 });
 route();
 preloadModels(organs);

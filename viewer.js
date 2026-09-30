@@ -120,6 +120,9 @@ export function createViewer(host, {
     resetTween: null,
     motionPaused: false,
     interactive: true,
+    fullControls: true,
+    viewScale: baseViewScale,
+    entryDisplayScale: DEFAULT_DISPLAY_SCALE,
     displayOffsetY: 0,
   };
 
@@ -266,6 +269,25 @@ export function createViewer(host, {
     renderer.domElement.tabIndex = state.interactive ? 0 : -1;
     renderer.domElement.style.pointerEvents = state.interactive ? '' : 'none';
     if (!state.interactive) renderer.domElement.blur();
+  }
+
+  function setFullControls(enabled) {
+    if (state.disposed) return;
+    state.fullControls = Boolean(enabled);
+    controls.enableZoom = state.fullControls;
+    controls.enablePan = state.fullControls;
+  }
+
+  function applyViewScale() {
+    camera.zoom = state.viewScale * state.entryDisplayScale;
+    camera.updateProjectionMatrix();
+    requestRender(true);
+  }
+
+  function setViewScale(scale) {
+    if (state.disposed) return;
+    state.viewScale = THREE.MathUtils.clamp(Number(scale) || 1, 0.25, 2);
+    applyViewScale();
   }
 
   function flushControlMomentum() {
@@ -604,7 +626,8 @@ export function createViewer(host, {
       if (!state.meshes.length) throw new Error('Model contains no mesh');
       state.exploder = createModelExploder(normalized);
       scene.add(normalized);
-      camera.zoom = baseViewScale * THREE.MathUtils.clamp(Number(entry.displayScale) || DEFAULT_DISPLAY_SCALE, 0.25, 2);
+      state.entryDisplayScale = THREE.MathUtils.clamp(Number(entry.displayScale) || DEFAULT_DISPLAY_SCALE, 0.25, 2);
+      applyViewScale();
       state.displayOffsetY = THREE.MathUtils.clamp(Number(entry.displayOffsetY) || 0, -0.4, 0.4);
       applySlice();
       resize();
@@ -686,7 +709,9 @@ export function createViewer(host, {
     if (!state.interactive) return;
     if (event.ctrlKey || event.metaKey || event.altKey) return;
     const key = event.key;
-    if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', '+', '=', '-', '_', '0'].includes(key)) return;
+    const rotationKeys = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+    const fullControlKeys = ['+', '=', '-', '_', '0'];
+    if (!rotationKeys.includes(key) && !(state.fullControls && fullControlKeys.includes(key))) return;
     event.preventDefault();
     if (key === 'ArrowLeft') orbit(-0.12, 0);
     else if (key === 'ArrowRight') orbit(0.12, 0);
@@ -780,6 +805,6 @@ export function createViewer(host, {
   return {
     load, setTheme, setView, zoom, reset, setRotate, setSlice, capturePreview,
     getExplodeInfo, setExplode,
-    playShot, setMotionPaused, setInteractive, dispose,
+    playShot, setMotionPaused, setInteractive, setFullControls, setViewScale, dispose,
   };
 }
