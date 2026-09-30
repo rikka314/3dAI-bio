@@ -7,7 +7,7 @@
   <meta name="description" content="Bio3D — an interactive collection of biological 3D models.">
   <title>Bio3D</title>
   <link rel="icon" href="./mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./style.css?v=20260930-bottom-sliders">
+  <link rel="stylesheet" href="./style.css?v=20260930-task-shell">
   <script type="importmap">{"imports":{"three":"./vendor/three/three.module.min.js","./content.js":"./content.js?v=20260930-anatomy-domains","./collection-tree.js":"./collection-tree.js?v=20260930-anatomy-domains"}}</script>
 </head>
 <body>
@@ -21,6 +21,7 @@
         -->
         <a href="#collection" id="collection-link" class="nav-link" data-i18n="collection">人体解剖</a>
         <a href="#plants" id="plant-collection-link" class="nav-link" data-i18n="plantCollection">植物解剖</a>
+        <a href="#task-generalization" id="task-generalization-link" class="nav-link nav-link-task" data-i18n="taskGeneralization">任务泛化</a>
         <!-- 关于页面暂时下线，保留代码以便恢复。
         <a href="#about" id="about-link" class="nav-link" data-i18n="about">关于</a>
         -->
@@ -78,11 +79,15 @@
         </div>
         <p class="anatomy-note" data-i18n="anatomyNote" hidden></p>
       </section>
+      <section id="task-generalization-section" class="task-generalization-page" aria-label="任务泛化" hidden>
+        <aside class="task-generalization-sidebar" aria-label="任务泛化侧边栏"></aside>
+        <div class="task-generalization-workspace"></div>
+      </section>
       <!-- 关于页面暂时下线，保留代码以便恢复。
       <section id="about-section" aria-label="关于" hidden></section>
       -->
     </main>
   </div>
-  <script type="module" src="./app.js?v=20260930-anatomy-domains"></script>
+  <script type="module" src="./app.js?v=20260930-task-shell"></script>
 </body>
 </html>

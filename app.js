@@ -33,6 +33,7 @@ let selected = organs[0];
 const lastCollectionIds = { human: null, plant: null };
 let currentCollection = 'human';
 let detail = false;
+let taskGeneralization = false;
 // 关于页面暂时下线，保留状态代码以便恢复。
 // let about = false;
 let collectionOpen = false;
@@ -148,6 +149,7 @@ function renderNavigation() {
   // if (!detail && !about) $('home-link').setAttribute('aria-current', 'page'); else $('home-link').removeAttribute('aria-current');
   if (detail && currentCollection === 'human') $('collection-link').setAttribute('aria-current', 'page'); else $('collection-link').removeAttribute('aria-current');
   if (detail && currentCollection === 'plant') $('plant-collection-link').setAttribute('aria-current', 'page'); else $('plant-collection-link').removeAttribute('aria-current');
+  if (taskGeneralization) $('task-generalization-link').setAttribute('aria-current', 'page'); else $('task-generalization-link').removeAttribute('aria-current');
   // 关于页面暂时下线，保留导航状态代码以便恢复。
   // if (about) $('about-link').setAttribute('aria-current', 'page'); else $('about-link').removeAttribute('aria-current');
 }
@@ -198,11 +200,13 @@ function renderText() {
   document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';
   // 首页和关于页面暂时下线，保留原始标题逻辑以便恢复。
   // document.title = detail ? `${selected.name[language]} — Bio3D` : about ? `${t('about')} — Bio3D` : 'Bio3D';
-  document.title = `${selected.name[language]} — Bio3D`;
+  document.title = taskGeneralization ? `${t('taskGeneralization')} — Bio3D` : `${selected.name[language]} — Bio3D`;
   document.querySelectorAll('[data-i18n]').forEach((element) => { element.textContent = t(element.dataset.i18n); });
   document.querySelectorAll('[data-label]').forEach((element) => { element.setAttribute('aria-label', t(element.dataset.label)); element.title = t(element.dataset.label); });
   $('language').textContent = language === 'zh' ? 'EN' : '中文';
   $('language').setAttribute('aria-label', language === 'zh' ? 'Switch to English' : '切换中文');
+  $('task-generalization-section').setAttribute('aria-label', t('taskGeneralization'));
+  document.querySelector('.task-generalization-sidebar').setAttribute('aria-label', t('taskSidebar'));
   // 关于页面暂时下线，保留无障碍标签代码以便恢复。
   // $('about-section').setAttribute('aria-label', t('about'));
   const system = groupOrgansBySystem(organs, currentCollection).find((group) => group.organs.some((organ) => organ.id === selected.id));
@@ -409,9 +413,10 @@ function route() {
   finishPageTransition();
   finishModelReveal();
   const id = location.hash.slice(1);
+  taskGeneralization = id === 'task-generalization';
   const match = resolveCollectionRoute(id, organs, lastCollectionIds);
   // 首页和关于页面暂时下线；根地址、关于页及未知路由临时进入成果集。
-  if (!match) {
+  if (!match && !taskGeneralization) {
     history.replaceState(history.state, '', '#collection');
     route();
     return;
@@ -436,10 +441,12 @@ function route() {
   // 首页暂时下线，保留页面显隐代码以便恢复。
   // $('desktop').hidden = detail || about;
   $('detail-section').hidden = !detail;
+  $('task-generalization-section').hidden = !taskGeneralization;
   // 关于页面暂时下线，保留页面显隐代码以便恢复。
   // $('about-section').hidden = !about;
   // $('main').classList.toggle('desktop-main', !detail && !about);
   $('main').classList.toggle('detail-main', detail);
+  $('main').classList.toggle('task-generalization-main', taskGeneralization);
   // 关于页面暂时下线，保留页面样式代码以便恢复。
   // $('main').classList.toggle('about-main', about);
   // 首页暂时下线，保留轮播清理代码以便恢复。
@@ -466,7 +473,7 @@ function route() {
     // cannot temporarily extend the document and toggle its scrollbar.
     // 首页和关于页面暂时下线，当前只对成果集详情执行转场。
     // const page = $(detail ? 'detail-section' : about ? 'about-section' : 'desktop');
-    const page = $('detail-section');
+    const page = taskGeneralization ? $('task-generalization-section') : $('detail-section');
     $('main').classList.add('page-transitioning');
     pageAnimation = page.animate([
       { opacity: 0, transform: 'translateY(24px)' },
