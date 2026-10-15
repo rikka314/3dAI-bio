@@ -1,5 +1,5 @@
 import { organs, messages } from './content.js';
-import { createViewer } from './viewer.js?v=20261015-bio3d-systems';
+import { createViewer } from './viewer.js?v=20261015-bio3d-systems-r2';
 // 首页暂时下线，保留导入代码以便恢复。
 // import { createDesktopTour } from './desktop-tour.js?v=20260929-explode';
 import { preloadModels } from './model-loading.js';

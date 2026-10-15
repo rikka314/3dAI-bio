@@ -734,13 +734,11 @@ export function createViewer(host, {
       }
       emitMotionChange();
       const requestedScale = Number(entry.displayScale);
-      const systemScale = entry.motionMetadata ? 1.12 : DEFAULT_DISPLAY_SCALE;
-      state.entryDisplayScale = THREE.MathUtils.clamp(Number.isFinite(requestedScale) ? requestedScale : systemScale, 0.25, 2);
+      state.entryDisplayScale = THREE.MathUtils.clamp(Number.isFinite(requestedScale) ? requestedScale : DEFAULT_DISPLAY_SCALE, 0.25, 2);
       applyViewScale();
       const requestedOffset = Number(entry.displayOffsetY);
-      // System-model controls occupy the lower canvas; frame those models above the panel by default.
-      const systemOffset = entry.motionMetadata ? -0.13 : 0;
-      state.displayOffsetY = THREE.MathUtils.clamp(Number.isFinite(requestedOffset) ? requestedOffset : systemOffset, -0.4, 0.4);
+      // Optional panels start closed, so center the model unless its entry specifies an offset.
+      state.displayOffsetY = THREE.MathUtils.clamp(Number.isFinite(requestedOffset) ? requestedOffset : 0, -0.4, 0.4);
       applySlice();
       resize();
       resetImmediate();
