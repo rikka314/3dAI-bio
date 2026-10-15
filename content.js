@@ -1,3 +1,4 @@
+import { classicalSystems } from './classical-systems.js';
 // One selected model per biological structure.
 export const DEFAULT_DISPLAY_SCALE = 5 / 6; // Match the heart for future organs.
 export const organs = [
@@ -130,6 +131,7 @@ export const organs = [
     downloadParts: ['./models/user-chloroplast-20260928/model.glb'], downloadBytes: 3489104,
     downloadUrl: './models/user-chloroplast-20260928/model.glb',
   },
+  ...classicalSystems,
 ];
 
 export const messages = {
@@ -141,7 +143,7 @@ export const messages = {
     model: '3D 模型', reset: '复位视角', expand: '放大展示', collapse: '收起展示',
     front: '正面', back: '背面', left: '左侧', right: '右侧', zoomIn: '放大', zoomOut: '缩小',
     hint: '左键旋转 · 右键平移 · 滚轮缩放', previewHint: '拖动旋转 · 放大后可使用完整操作', canvas: '可交互三维模型：方向键旋转，加减键缩放，0 复位', previewCanvas: '三维模型预览：拖动或使用方向键旋转，放大后可使用完整操作',
-    rotate: '自动旋转', pause: '停止旋转', explode: '组件拆分', explodeDegree: '拆分程度', explodeUnavailable: '此模型没有可独立拆分的组件', slice: '切片', axis: '切片轴', depth: '位置', flip: '反向',
+    rotate: '自动旋转', pause: '停止旋转', motion: '动画', explode: '组件拆分', explodeDegree: '拆分程度', explodeUnavailable: '此模型没有可独立拆分的组件', slice: '切片', axis: '切片轴', depth: '位置', flip: '反向',
     sliceNote: '切片显示现有模型截面；视角与切片轴按模型坐标定义。',
     retry: '重新加载',
     loading: '正在加载模型', preparing: '正在准备三维视图…', error: '模型未能加载，请重试。',
@@ -157,7 +159,7 @@ export const messages = {
     model: '3D model', reset: 'Reset view', expand: 'Expand viewer', collapse: 'Collapse viewer',
     front: 'Front', back: 'Back', left: 'Left', right: 'Right', zoomIn: 'Zoom in', zoomOut: 'Zoom out',
     hint: 'Left drag to rotate · Right drag to pan · Scroll to zoom', previewHint: 'Drag to rotate · Expand for full controls', canvas: 'Interactive 3D model: arrow keys to rotate, plus and minus to zoom, 0 to reset', previewCanvas: '3D model preview: drag or use arrow keys to rotate; expand for full controls',
-    rotate: 'Auto-rotate', pause: 'Stop rotation', explode: 'Separate components', explodeDegree: 'Separation', explodeUnavailable: 'This model has no independently separable components', slice: 'Section', axis: 'Axis', depth: 'Position', flip: 'Flip',
+    rotate: 'Auto-rotate', pause: 'Stop rotation', motion: 'Animation', explode: 'Separate components', explodeDegree: 'Separation', explodeUnavailable: 'This model has no independently separable components', slice: 'Section', axis: 'Axis', depth: 'Position', flip: 'Flip',
     sliceNote: 'Sections reveal the existing mesh. Views and section axes use model coordinates.',
     retry: 'Try again',
     loading: 'Loading model', preparing: 'Preparing 3D view…', error: 'The model could not be loaded. Please try again.',

@@ -1,9 +1,10 @@
 import { organs, messages } from './content.js';
-import { createViewer } from './viewer.js?v=20260930-model-size';
+import { createViewer } from './viewer.js?v=20261015-bio3d-systems';
 // 首页暂时下线，保留导入代码以便恢复。
 // import { createDesktopTour } from './desktop-tour.js?v=20260929-explode';
 import { preloadModels } from './model-loading.js';
 import { collectionIdForOrgan, collectionLabels, collectionRootLabels, groupOrgansBySystem, resolveCollectionRoute, revealOrganInTree } from './collection-tree.js';
+import { createAnimationUi, deriveMotionUiModel } from './animation-ui.js?v=20261015-motion-toggle';
 
 const $ = (id) => document.getElementById(id);
 const icons = {
@@ -52,6 +53,8 @@ let flipped = false;
 let exploding = false;
 let explodeAvailable = false;
 let explodePercent = 0;
+let motionInfo = { available: false, modes: [], state: null };
+let motionOpen = false;
 let expanded = false;
 let expandAnimations = [];
 let pageAnimation;
@@ -66,6 +69,18 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const PREVIEW_VIEW_SCALE = 1.4;
 const EXPANDED_VIEW_SCALE = 1.1;
 const t = (key) => messages[language][key] || key;
+
+const motionUi = createAnimationUi($('motion-controls'), {
+  select(id) { if (exploding) closeExplode(); viewer?.selectMotion(id); },
+  toggle() { if (!slicing) { if (exploding) closeExplode(); viewer?.toggleMotion(); } },
+  reset() { viewer?.resetMotion(); },
+  seek(progress) { if (exploding) closeExplode(); viewer?.seekMotion(progress); },
+  speed(speed) { viewer?.setMotionSpeed(speed); },
+  amplitude(amplitude) { if (exploding) closeExplode(); viewer?.setMotionAmplitude(amplitude); },
+  side(side) { if (exploding) closeExplode(); viewer?.setMotionSide(side); },
+  particles(enabled) { if (exploding) closeExplode(); viewer?.setMotionParticles(enabled); },
+  retry() { loadSelected(); },
+});
 
 document.querySelectorAll('[data-icon]').forEach((element) => { element.innerHTML = icon(element.dataset.icon); });
 
@@ -158,6 +173,32 @@ function setControlsEnabled(enabled) {
   for (const element of document.querySelectorAll('#reset, #rotate, #slice, #zoom-in, #zoom-out, #slice-axis, #slice-depth, #slice-flip, [data-view]')) element.disabled = !enabled;
   $('explode').disabled = !enabled || !explodeAvailable;
   $('explode-depth').disabled = !enabled || !explodeAvailable;
+  renderMotionState();
+}
+
+function renderMotionState() {
+  const { visible } = deriveMotionUiModel(motionInfo);
+  const open = motionOpen && visible && expanded && !slicing && !exploding;
+  $('motion').hidden = !visible;
+  $('motion').disabled = loadState.phase !== 'ready';
+  $('motion').setAttribute('aria-expanded', String(open));
+  motionUi.setLanguage(language);
+  motionUi.setBlocked(slicing || exploding);
+  motionUi.setExpanded(open);
+  motionUi.update({ ...motionInfo, disabled: loadState.phase !== 'ready' || motionInfo.disabled });
+}
+
+function toggleMotionPanel() {
+  if (!expanded) return;
+  const opening = !motionOpen;
+  if (opening) {
+    if (exploding) closeExplode();
+    if (slicing) toggleSlice();
+  } else {
+    viewer?.pauseMotion();
+  }
+  motionOpen = opening;
+  renderMotionState();
 }
 
 function renderExplodeState() {
@@ -227,6 +268,7 @@ function renderText() {
   $('progress').setAttribute('aria-label', t('progress'));
   $('viewport').querySelector('canvas')?.setAttribute('aria-label', t(expanded ? 'canvas' : 'previewCanvas'));
   updateRotation(rotating);
+  renderMotionState();
   renderExplodeState();
   renderTheme();
   renderNavigation();
@@ -305,6 +347,10 @@ function ensureViewer() {
       },
       onError(error) { console.error('Bio3D model viewer:', error); },
       onRotateChange: updateRotation,
+      onMotionChange(info) {
+        motionInfo = info;
+        renderMotionState();
+      },
       onReset() {
         explodePercent = 0;
         renderExplodeState();
@@ -348,10 +394,12 @@ function toggleSlice() {
   finishSliceAnimation();
   const opening = !slicing;
   if (opening && exploding) closeExplode();
+  if (opening) motionOpen = false;
   slicing = opening;
   $('slice-panel').hidden = !slicing;
   $('slice').setAttribute('aria-expanded', String(slicing));
   applySlice();
+  renderMotionState();
   if (slicing && !reducedMotion.matches) {
     sliceAnimation = $('slice-panel').animate([
       { opacity: 0 },
@@ -366,6 +414,7 @@ function closeExplode() {
   explodePercent = 0;
   viewer?.setExplode(0);
   renderExplodeState();
+  renderMotionState();
 }
 
 function toggleExplode() {
@@ -374,6 +423,7 @@ function toggleExplode() {
     closeExplode();
     return;
   }
+  motionOpen = false;
   finishSliceAnimation();
   slicing = false;
   $('slice-panel').hidden = true;
@@ -381,8 +431,10 @@ function toggleExplode() {
   applySlice();
   exploding = true;
   explodePercent = 0;
+  viewer?.resetMotion();
   viewer?.setExplode(0);
   renderExplodeState();
+  renderMotionState();
 }
 
 function applyExplode() {
@@ -397,9 +449,12 @@ function loadSelected() {
   $('viewport').style.opacity = '0';
   slicing = false; flipped = false;
   exploding = false; explodeAvailable = false; explodePercent = 0;
+  motionInfo = { available: false, modes: [], state: null };
+  motionOpen = false;
   $('slice-panel').hidden = true; $('slice').setAttribute('aria-expanded', 'false');
   $('slice-axis').value = 'x'; $('slice-depth').value = '50';
   renderExplodeState();
+  renderMotionState();
   document.querySelectorAll('[data-view]').forEach((button) => button.setAttribute('aria-pressed', 'false'));
   if (ensureViewer()) {
     applySlice();
@@ -537,6 +592,8 @@ function setExpanded(value) {
     scrollBeforeExpand = window.scrollY;
   } else {
     // Return the reading view to a plain draggable preview.
+    motionOpen = false;
+    viewer?.pauseMotion();
     viewer?.setRotate(false);
     finishSliceAnimation();
     slicing = false;
@@ -657,6 +714,7 @@ $('slice-depth').addEventListener('input', applySlice);
 $('slice-flip').addEventListener('click', () => { flipped = !flipped; applySlice(); });
 $('explode').addEventListener('click', toggleExplode);
 $('explode-depth').addEventListener('input', applyExplode);
+$('motion').addEventListener('click', toggleMotionPanel);
 $('expand').addEventListener('click', () => setExpanded(!expanded));
 $('view-presets').addEventListener('click', (event) => {
   const button = event.target.closest('button[data-view]');

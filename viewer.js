@@ -7,6 +7,8 @@ import { DEFAULT_DISPLAY_SCALE } from './content.js';
 import { MeshoptDecoder } from './vendor/meshoptimizer/meshopt_decoder.js';
 import { createHeartSection } from './heart-section.js';
 import { createModelExploder } from './model-explode.js';
+import { createClassicalMotionController } from './classical-motion.js';
+import { applyClassicalSourceMaterials, createClassicalSourceLights } from './classical-appearance.js';
 
 const AXES = {
   x: new THREE.Vector3(1, 0, 0),
@@ -54,6 +56,7 @@ export function createViewer(host, {
   onError,
   onRotateChange,
   onReset,
+  onMotionChange,
   transparent = false,
   viewScale = 1,
   onModelHover,
@@ -87,8 +90,10 @@ export function createViewer(host, {
   // Fixed fill from all six directions keeps rotated and sectioned faces readable.
   // Slightly stronger front/top lights retain surface relief without a dark side.
   const lightGain = 1.5;
-  scene.add(new THREE.AmbientLight(0xffffff, 1.2 * lightGain));
-  scene.add(new THREE.HemisphereLight(0xffffff, 0xc6c6c6, 0.8 * lightGain));
+  const defaultLights = new THREE.Group();
+  scene.add(defaultLights);
+  defaultLights.add(new THREE.AmbientLight(0xffffff, 1.2 * lightGain));
+  defaultLights.add(new THREE.HemisphereLight(0xffffff, 0xc6c6c6, 0.8 * lightGain));
   for (const [position, intensity] of [
     [[5, 0, 0], 1.0], [[-5, 0, 0], 0.9],
     [[0, 5, 0], 1.1], [[0, -5, 0], 0.9],
@@ -96,12 +101,17 @@ export function createViewer(host, {
   ]) {
     const light = new THREE.DirectionalLight(0xffffff, intensity * lightGain);
     light.position.fromArray(position);
-    scene.add(light);
+    defaultLights.add(light);
   }
+  const classicalLights = createClassicalSourceLights(THREE);
+  classicalLights.visible = false;
+  scene.add(classicalLights);
 
   const state = {
     root: null,
     exploder: null,
+    motion: null,
+    motionError: null,
     bounds: new THREE.Box3(),
     meshes: [],
     materialState: new Map(),
@@ -124,6 +134,7 @@ export function createViewer(host, {
     viewScale: baseViewScale,
     entryDisplayScale: DEFAULT_DISPLAY_SCALE,
     displayOffsetY: 0,
+    lastFrameTime: 0,
   };
 
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -185,6 +196,13 @@ export function createViewer(host, {
       state.raf = 0;
       return;
     }
+    const deltaSeconds = state.lastFrameTime
+      ? Math.min(Math.max((timestamp - state.lastFrameTime) / 1000, 0), 0.1)
+      : 0;
+    state.lastFrameTime = timestamp;
+    if (!state.motionPaused && state.motion?.getState().playing) {
+      state.motion.tick(deltaSeconds);
+    }
     if (!state.motionPaused && state.resetTween) {
       updateResetTween(timestamp);
     } else if (!state.motionPaused && (controls.autoRotate || state.settleFrames > 0)) {
@@ -193,9 +211,9 @@ export function createViewer(host, {
     }
     renderNow();
     const needsNextFrame = !state.motionPaused
-      && (Boolean(state.resetTween) || controls.autoRotate || state.settleFrames > 0);
+      && (Boolean(state.resetTween) || controls.autoRotate || state.settleFrames > 0 || Boolean(state.motion?.getState().playing));
     state.raf = 0;
-    if (needsNextFrame) requestRender();
+    if (needsNextFrame) requestRender(); else state.lastFrameTime = 0;
   }
 
   function requestRender(settle = false) {
@@ -259,7 +277,43 @@ export function createViewer(host, {
       cancelAnimationFrame(state.raf);
       state.raf = 0;
     }
+    state.lastFrameTime = 0;
     requestRender();
+  }
+
+  function getMotionInfo(snapshot = state.motion?.getState()) {
+    const modes = state.motion?.listModes() || [];
+    return {
+      available: modes.length > 0,
+      disabled: state.disposed || state.contextLost || !state.root,
+      error: state.motionError,
+      metadata: state.motion?.getMetadata() || null,
+      modes,
+      state: snapshot || null,
+    };
+  }
+
+  function emitMotionChange(snapshot) {
+    call(onMotionChange, getMotionInfo(snapshot));
+  }
+
+  function selectMotion(id) { state.motion?.select(id); requestRender(); }
+  function playMotion() { state.motion?.play(); requestRender(); }
+  function pauseMotion() { state.motion?.pause(); requestRender(); }
+  function toggleMotion() { state.motion?.toggle(); requestRender(); }
+  function seekMotion(progress) { state.motion?.seek(progress); requestRender(); }
+  function setMotionSpeed(speed) { state.motion?.setSpeed(speed); }
+  function setMotionAmplitude(amplitude) { state.motion?.setAmplitude(amplitude); requestRender(); }
+  function setMotionSide(side) { state.motion?.setSide(side); requestRender(); }
+  function setMotionParticles(enabled) { state.motion?.setParticlesEnabled(enabled); requestRender(); }
+  function resetMotion() { state.motion?.reset(); requestRender(); }
+
+  async function loadMotionMetadata(entry, signal) {
+    if (!entry?.motionMetadata) return null;
+    if (typeof entry.motionMetadata === 'object') return entry.motionMetadata;
+    const response = await fetch(new URL(entry.motionMetadata, SHOWCASE_BASE), { signal });
+    if (!response.ok) throw new Error(`Motion metadata request failed (${response.status})`);
+    return response.json();
   }
 
   function setInteractive(enabled) {
@@ -406,6 +460,7 @@ export function createViewer(host, {
   function reset() {
     if (!state.root) return;
     if (getExplodeInfo().percent > 0) setExplode(0);
+    resetMotion();
     call(onReset);
     setRotate(false);
     if (reducedMotion.matches) {
@@ -557,10 +612,18 @@ export function createViewer(host, {
       percent: THREE.MathUtils.clamp(Number(percent) || 0, 0, 100),
       flip: Boolean(flip),
     };
+    if (state.slice.enabled) pauseMotion();
     applySlice();
   }
 
   function releaseCurrent() {
+    defaultLights.visible = true;
+    classicalLights.visible = false;
+    state.motion?.dispose();
+    state.motion = null;
+    state.motionError = null;
+    state.lastFrameTime = 0;
+    emitMotionChange();
     clearSliceOutline();
     restoreMaterialState();
     if (state.heartSection) {
@@ -595,6 +658,7 @@ export function createViewer(host, {
     setRotate(false);
     releaseCurrent();
     call(onStatus, { phase: 'loading', progress: 0 });
+    let detachedScene = null;
     try {
       const packed = await loadModelBuffer(entry, {
         priority: MODEL_PRIORITY.foreground,
@@ -604,10 +668,32 @@ export function createViewer(host, {
       if (signal.aborted || generation !== state.generation) return;
       call(onStatus, { phase: 'loading', progress: 94 });
       const gltf = await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(packed, SHOWCASE_BASE.href);
+      detachedScene = gltf.scene;
       if (signal.aborted || generation !== state.generation) {
         disposeObject(gltf.scene);
+        detachedScene = null;
         return;
       }
+      let motionMetadata = null;
+      let motionMetadataError = null;
+      if (entry.motionMetadata) {
+        try {
+          motionMetadata = await loadMotionMetadata(entry, signal);
+        } catch (error) {
+          if (error?.name === 'AbortError') throw error;
+          motionMetadataError = error instanceof Error ? error.message : String(error);
+          console.error('3dAI bio motion metadata:', error);
+        }
+        if (signal.aborted || generation !== state.generation) {
+          disposeObject(gltf.scene);
+          detachedScene = null;
+          return;
+        }
+      }
+      const sourceAppearance = entry.renderProfile === 'classical-source';
+      if (sourceAppearance) applyClassicalSourceMaterials(THREE, gltf.scene);
+      defaultLights.visible = !sourceAppearance;
+      classicalLights.visible = sourceAppearance;
       const sourceBounds = new THREE.Box3().setFromObject(gltf.scene);
       if (sourceBounds.isEmpty()) throw new Error('Model contains no visible geometry');
       const size = sourceBounds.getSize(new THREE.Vector3());
@@ -617,18 +703,44 @@ export function createViewer(host, {
       const normalized = new THREE.Group();
       gltf.scene.position.sub(center);
       normalized.add(gltf.scene);
+      if (entry.coordinateSpace === 'raw-z-up') normalized.rotation.x = -Math.PI / 2;
       normalized.scale.setScalar(2 / largest);
       normalized.updateMatrixWorld(true);
       state.root = normalized;
+      detachedScene = null;
       state.organId = entry.id;
       state.bounds.setFromObject(normalized);
       normalized.traverse((object) => { if (object.isMesh) state.meshes.push(object); });
       if (!state.meshes.length) throw new Error('Model contains no mesh');
       state.exploder = createModelExploder(normalized);
       scene.add(normalized);
-      state.entryDisplayScale = THREE.MathUtils.clamp(Number(entry.displayScale) || DEFAULT_DISPLAY_SCALE, 0.25, 2);
+      state.motionError = motionMetadataError;
+      if (motionMetadata) {
+        try {
+          state.motion = createClassicalMotionController({
+            THREE,
+            root: gltf.scene,
+            scene,
+            metadata: motionMetadata,
+            onChange(snapshot) {
+              emitMotionChange(snapshot);
+              requestRender();
+            },
+          });
+        } catch (error) {
+          state.motionError = error instanceof Error ? error.message : String(error);
+          console.error('3dAI bio motion controller:', error);
+        }
+      }
+      emitMotionChange();
+      const requestedScale = Number(entry.displayScale);
+      const systemScale = entry.motionMetadata ? 1.12 : DEFAULT_DISPLAY_SCALE;
+      state.entryDisplayScale = THREE.MathUtils.clamp(Number.isFinite(requestedScale) ? requestedScale : systemScale, 0.25, 2);
       applyViewScale();
-      state.displayOffsetY = THREE.MathUtils.clamp(Number(entry.displayOffsetY) || 0, -0.4, 0.4);
+      const requestedOffset = Number(entry.displayOffsetY);
+      // System-model controls occupy the lower canvas; frame those models above the panel by default.
+      const systemOffset = entry.motionMetadata ? -0.13 : 0;
+      state.displayOffsetY = THREE.MathUtils.clamp(Number.isFinite(requestedOffset) ? requestedOffset : systemOffset, -0.4, 0.4);
       applySlice();
       resize();
       resetImmediate();
@@ -636,6 +748,7 @@ export function createViewer(host, {
       call(onStatus, { phase: 'ready', progress: 100 });
       call(onReady);
     } catch (error) {
+      if (detachedScene) disposeObject(detachedScene);
       if (generation !== state.generation || error?.name === 'AbortError') return;
       invalidateModelBuffer(entry);
       releaseCurrent();
@@ -650,6 +763,10 @@ export function createViewer(host, {
 
   function setExplode(percent) {
     if (!state.exploder) return;
+    if (Number(percent) > 0 && state.motion) {
+      state.motion.pause();
+      state.motion.reset();
+    }
     cancelResetTween();
     flushControlMomentum();
     const previousFit = fitDistance();
@@ -730,6 +847,7 @@ export function createViewer(host, {
 
   function onVisibilityChange() {
     state.visible = !document.hidden;
+    state.lastFrameTime = 0;
     syncTweenPause();
     if (!state.visible && state.raf) {
       cancelAnimationFrame(state.raf);
@@ -805,6 +923,8 @@ export function createViewer(host, {
   return {
     load, setTheme, setView, zoom, reset, setRotate, setSlice, capturePreview,
     getExplodeInfo, setExplode,
+    getMotionInfo, selectMotion, playMotion, pauseMotion, toggleMotion, seekMotion,
+    setMotionSpeed, setMotionAmplitude, setMotionSide, setMotionParticles, resetMotion,
     playShot, setMotionPaused, setInteractive, setFullControls, setViewScale, dispose,
   };
 }

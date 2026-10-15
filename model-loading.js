@@ -229,7 +229,10 @@ export function createModelLoader({
   }
 
   function preload(entries, { priority = MODEL_PRIORITY.background } = {}) {
-    for (const entry of entries || []) load(entry, { priority }).catch(() => {});
+    for (const entry of entries || []) {
+      if (entry.preload === false) continue;
+      load(entry, { priority }).catch(() => {});
+    }
   }
 
   function prioritize(entry) {

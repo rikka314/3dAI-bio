@@ -1,10 +1,16 @@
 const HUMAN_SYSTEMS = [
-  { id: 'circulatory', label: { zh: '循环系统', en: 'Circulatory system' }, organs: ['heart'] },
-  { id: 'digestive', label: { zh: '消化系统', en: 'Digestive system' }, organs: ['teeth', 'stomach', 'liver', 'pancreas', 'intestines'] },
-  { id: 'respiratory', label: { zh: '呼吸系统', en: 'Respiratory system' }, organs: ['lungs', 'alveoli'] },
-  { id: 'nervous', label: { zh: '神经系统', en: 'Nervous system' }, organs: ['brain'] },
-  { id: 'urinary', label: { zh: '泌尿系统', en: 'Urinary system' }, organs: ['kidneys'] },
-  { id: 'lymphatic', label: { zh: '淋巴系统', en: 'Lymphatic system' }, organs: ['spleen'] },
+  { id: 'circulatory', label: { zh: '循环系统', en: 'Circulatory system' }, organs: ['cardiovascular-system', 'heart'] },
+  { id: 'digestive', label: { zh: '消化系统', en: 'Digestive system' }, organs: ['digestive-system', 'teeth', 'stomach', 'liver', 'pancreas'] },
+  { id: 'respiratory', label: { zh: '呼吸系统', en: 'Respiratory system' }, organs: ['respiratory-system', 'lungs', 'alveoli'] },
+  { id: 'nervous', label: { zh: '神经系统', en: 'Nervous system' }, organs: ['nervous-system', 'brain'] },
+  { id: 'urinary', label: { zh: '泌尿系统', en: 'Urinary system' }, organs: ['urinary-system', 'kidneys'] },
+  { id: 'lymphatic', label: { zh: '淋巴系统', en: 'Lymphatic system' }, organs: ['lymphatic-system', 'spleen'] },
+  { id: 'skeletal', label: { zh: '骨与关节系统', en: 'Skeletal and joint system' }, organs: ['skeletal-and-joint-system'] },
+  { id: 'muscular', label: { zh: '肌肉系统', en: 'Muscular system' }, organs: ['muscular-system'] },
+  { id: 'sensory', label: { zh: '感觉器官', en: 'Sensory organs' }, organs: ['sensory-system'] },
+  { id: 'endocrine', label: { zh: '内分泌系统', en: 'Endocrine system' }, organs: ['endocrine-system'] },
+  { id: 'reproductive', label: { zh: '生殖系统', en: 'Reproductive system' }, organs: ['male-reproductive-system'] },
+  { id: 'integumentary', label: { zh: '皮肤系统', en: 'Integumentary system' }, organs: ['integumentary-system'] },
   { id: 'regional', label: { zh: '局部解剖', en: 'Regional anatomy' }, organs: ['thorax'] },
 ];
 

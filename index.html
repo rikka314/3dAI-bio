@@ -7,8 +7,8 @@
   <meta name="description" content="Bio3D — an interactive collection of biological 3D models.">
   <title>Bio3D</title>
   <link rel="icon" href="./mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./style.css?v=20260930-task-shell">
-  <script type="importmap">{"imports":{"three":"./vendor/three/three.module.min.js","./content.js":"./content.js?v=20260930-anatomy-domains","./collection-tree.js":"./collection-tree.js?v=20260930-anatomy-domains"}}</script>
+  <link rel="stylesheet" href="./style.css?v=20261015-bio3d-systems">
+  <script type="importmap">{"imports":{"three":"./vendor/three/three.module.min.js","./content.js":"./content.js?v=20261015-bio3d-systems","./collection-tree.js":"./collection-tree.js?v=20261015-bio3d-systems","./model-loading.js":"./model-loading.js?v=20261015-bio3d-systems"}}</script>
 </head>
 <body>
   <a class="skip-link" href="#main" data-i18n="skip">跳到内容</a>
@@ -72,10 +72,28 @@
             <input id="explode-depth" type="range" min="0" max="100" value="0" step="1" aria-orientation="horizontal" data-label="explodeDegree">
             <output id="explode-value" for="explode-depth">0%</output>
           </div>
+          <section class="motion-panel" id="motion-controls" aria-label="结构动画" hidden>
+            <div class="motion-error" data-motion="error" role="status" hidden><span data-motion="errorText"></span><button type="button" class="plain-button" data-motion="retry">重新加载</button></div>
+            <div class="motion-main" data-motion="main">
+              <select class="motion-mode" data-motion="mode" aria-label="动画模式"></select>
+              <button class="motion-toggle" type="button" data-motion="toggle" aria-pressed="false">播放</button>
+              <input class="motion-progress" data-motion="progress" type="range" min="0" max="1000" value="0" step="1">
+              <output class="motion-progress-value" data-motion="progressValue">0%</output>
+              <button class="motion-reset" type="button" data-motion="reset" aria-label="重置动画" data-icon="reset"></button>
+            </div>
+            <div class="motion-options" data-motion="options">
+              <label><span data-motion="speedLabel">速度</span><select data-motion="speed"><option value="0.5">0.5×</option><option value="1">1×</option><option value="1.5">1.5×</option><option value="2">2×</option></select></label>
+              <label class="motion-amplitude"><span data-motion="amplitudeLabel">幅度</span><input data-motion="amplitude" type="range" min="0" max="1.5" value="1" step="0.05"><output data-motion="amplitudeValue">100%</output></label>
+              <label data-motion="sideWrap"><span data-motion="sideLabel">侧别</span><select data-motion="side"><option value="both">双侧</option><option value="left">左侧</option><option value="right">右侧</option></select></label>
+              <label class="motion-check" data-motion="particlesWrap"><input data-motion="particles" type="checkbox"><span data-motion="particlesLabel">流线粒子</span></label>
+            </div>
+            <p class="motion-status" data-motion="status" aria-live="polite"></p>
+            <p class="motion-disclaimer" data-motion="disclaimer"></p>
+          </section>
           <div class="viewer-bottom"><div class="zoom-controls"><button id="zoom-out" class="icon-button" data-icon="minus" data-label="zoomOut" disabled></button><button id="zoom-in" class="icon-button" data-icon="plus" data-label="zoomIn" disabled></button></div></div>
         </div>
         </div>
-        <div class="under-viewer"><div class="view-presets" id="view-presets" role="group" aria-label="模型坐标视角"><button data-view="front" data-i18n="front" disabled>正面</button><button data-view="back" data-i18n="back" disabled>背面</button><button data-view="left" data-i18n="left" disabled>左侧</button><button data-view="right" data-i18n="right" disabled>右侧</button></div><div class="mode-controls"><a id="download-model" class="subtle-button" download><span data-icon="download"></span><span data-i18n="download">下载高清模型</span></a><button id="rotate" class="subtle-button" aria-pressed="false" disabled><span data-icon="rotate"></span><span data-i18n="rotate">自动旋转</span></button><button id="explode" class="subtle-button" aria-expanded="false" aria-controls="explode-controls" data-label="explode" disabled><span data-icon="explode"></span><span data-i18n="explode">组件拆分</span></button><button id="slice" class="subtle-button" aria-expanded="false" aria-controls="slice-panel" disabled><span data-icon="slice"></span><span data-i18n="slice">切片</span></button></div></div>
+        <div class="under-viewer"><div class="view-presets" id="view-presets" role="group" aria-label="模型坐标视角"><button data-view="front" data-i18n="front" disabled>正面</button><button data-view="back" data-i18n="back" disabled>背面</button><button data-view="left" data-i18n="left" disabled>左侧</button><button data-view="right" data-i18n="right" disabled>右侧</button></div><div class="mode-controls"><a id="download-model" class="subtle-button" download><span data-icon="download"></span><span data-i18n="download">下载高清模型</span></a><button id="rotate" class="subtle-button" aria-pressed="false" disabled><span data-icon="rotate"></span><span data-i18n="rotate">自动旋转</span></button><button id="motion" class="subtle-button" aria-expanded="false" aria-controls="motion-controls" data-label="motion" hidden disabled><span data-icon="play"></span><span data-i18n="motion">动画</span></button><button id="explode" class="subtle-button" aria-expanded="false" aria-controls="explode-controls" data-label="explode" disabled><span data-icon="explode"></span><span data-i18n="explode">组件拆分</span></button><button id="slice" class="subtle-button" aria-expanded="false" aria-controls="slice-panel" disabled><span data-icon="slice"></span><span data-i18n="slice">切片</span></button></div></div>
         </div>
         <p class="anatomy-note" data-i18n="anatomyNote" hidden></p>
       </section>
@@ -88,6 +106,6 @@
       -->
     </main>
   </div>
-  <script type="module" src="./app.js?v=20260930-task-shell"></script>
+  <script type="module" src="./app.js?v=20261015-bio3d-systems"></script>
 </body>
 </html>
